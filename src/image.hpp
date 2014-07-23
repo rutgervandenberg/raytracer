@@ -7,7 +7,7 @@ class Image {
 public:
 	int width;
     int height;
-	vector<__m128> data;
+	__m128* data;
 
 	Image();
 	Image(int width, int height);

@@ -2,28 +2,14 @@
 #include <ctime> /* clock() */
 #include <xmmintrin.h>
 #include <cstdlib>
+#include "mem.hpp"
 
-// allocate on 16 byte boundary
-void* ialloc(int size) {
-	char* ptr = (char*)malloc(size + 16 + 16);
-	char* data = (ptr + 16 + 16 - (int)ptr % 16);
-	char* info = (char*)data - 16; // 16 bytes in size
-	*(char**)info = ptr;
-	return data;
-}
+void raytrace(Image* image) {
+	// short names
+	int w = image->width;
+	int h = image->height;
 
-// free on 16 byte boundary
-void ifree(void* ptr) {
-	void* real = *(void**) ((char*)ptr - 16);
-	free(real);
-}
-
-void raytrace(Image& image) {
-	// quick 
-	int w = image.width;
-	int h = image.height;
 	// make sure aligned on 16 bit boundary
-	__m128* data = (__m128*)ialloc(w * h * 16);
 	__m128* rays = (__m128*)ialloc(w * h * 16 * 2);
 	__m128* corners = (__m128*)ialloc(16 * 4 * 2);
 
@@ -76,24 +62,10 @@ void raytrace(Image& image) {
 	// fill
 	for (int y = 0; y < 480; y++) {
 		for (int x = 0; x < 640; x++) {
-			data[y * 640 + x] = rays[(y * 640 + x) * 2 + 0];
+			image->data[y * 640 + x] = rays[(y * 640 + x) * 2 + 0];
 		}
 	}
 	
 	clock_t ticks = clock() - start;
-	println(ticks << " ms");
-
-	// convert
-	for (int i = 0; i < 640 * 480; i++){
-		float r = data[i].m128_f32[0];
-		float g = data[i].m128_f32[1];
-		float b = data[i].m128_f32[2];
-		float a = data[i].m128_f32[3];
-		image.data[i*4+0] = r;
-		image.data[i*4+1] = g;
-		image.data[i*4+2] = b;
-		image.data[i*4+3] = a;
-	}
-
-	ifree(data);
+	printf("%d ms", ticks);
 }

@@ -1,4 +1,5 @@
 #include <cstdio> /* file output */
+#include "mem.hpp"
 #include "image.hpp"
 #ifdef _WIN32
 #include <winsock2.h>
@@ -7,16 +8,20 @@
 #endif
 using namespace std;
 
-Image::Image() :
-		width(0), height(0), data(0, _mm_set_ps1(0.0f)) {
+Image::Image() {
+	width = 0;
+	height = 0;
+	data = (__m128*)ialloc(16 * 3 * width * height);
 }
 
-Image::Image(int width, int height) :
-		width(width), height(height), data(3 * width * height, _mm_set_ps1(0.0f)) {
+Image::Image(int width, int height) {
+	width = 0;
+	height = 0;
+	data = (__m128*)ialloc(16 * 3 * width * height);
 }
 
 Image::~Image() {
-
+	ifree(data);
 }
 
 void Image::load(char* path) {
@@ -67,7 +72,7 @@ bool Image::write(const char * filename2) {
 	*h = htonl(height);
 
 	// fill buffer, convert from RGB to BGR
-	for (unsigned int i = 0; i < data.size() / 3; i++) {
+	for (int i = 0; i < width * height; i++) {
 		float color[4];
 		_mm_store_ps(color, data[i]);
 		buf[i * 3 + 0] = (unsigned char) (color[0] * 255.0f);
