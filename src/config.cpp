@@ -2,7 +2,7 @@
 #include <fstream>
 #include "config.hpp"
 #include <iostream> 
-
+#include <string>
 Config::Config(std::string configname) {
 	std::unordered_map<std::string, int*> allowed_variables = {
 			{"MSAA", &MSAA},

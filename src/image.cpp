@@ -1,6 +1,7 @@
 #include <cstdio> /* file output */
 #include "mem.hpp"
 #include "image.hpp"
+#include <string>
 #ifdef _WIN32
 #include <winsock2.h>
 #else

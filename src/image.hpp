@@ -6,7 +6,7 @@ using namespace std;
 class Image {
 public:
 	int width;
-    int height;
+	int height;
 	__m128* data;
 
 	Image();
@@ -14,5 +14,5 @@ public:
 	~Image();
 	
 	void load(char* path);
-    bool write(const char * filename);
+	bool write(const char * filename);
 };
