@@ -1,11 +1,6 @@
 #include <cstdio> /* file output */
 #include "mem.hpp"
 #include "image.hpp"
-#ifdef _WIN32
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#endif
 using namespace std;
 
 Image::Image() {
@@ -28,16 +23,14 @@ void Image::load(char* path) {
 
 }
 
-bool Image::write(const char * filename2) {
+void Image::write(const char * filename2) {
 	string str = string(filename2) + string(".bmp");
 	const char* filename = str.c_str();
 
 	FILE* file;
 	file = fopen(filename, "wb");
-	if (!file) {
-		printf("could not open file %s", filename);
-		return false;
-	}
+	if (!file)
+		throw exception("file not found");
 
 	// bitmap header
 	unsigned char header[] = {
@@ -77,14 +70,16 @@ bool Image::write(const char * filename2) {
 		for (int x = 0; x < width; x++) {
 			int i1 = y * width + x;
 			int i2 = (height - 1 - y) * width + x;
-			float color[4];
-			color[0] = data[i1].m128_f32[2];
-			color[1] = data[i1].m128_f32[1];
-			color[2] = data[i1].m128_f32[0];
+			float* color = (float*)ialloc(4 * 4);
+			_mm_stream_ps(color, data[i1]);
+			//color[0] = data[i1].m128_f32[2];
+			//color[1] = data[i1].m128_f32[1];
+			//color[2] = data[i1].m128_f32[0];
 			//_mm_store_ps(color, data[i]);
-			buf[i2 * 3 + 0] = (unsigned char)(color[0] * 255.0f);
+			buf[i2 * 3 + 0] = (unsigned char)(color[2] * 255.0f);
 			buf[i2 * 3 + 1] = (unsigned char)(color[1] * 255.0f);
-			buf[i2 * 3 + 2] = (unsigned char)(color[2] * 255.0f);
+			buf[i2 * 3 + 2] = (unsigned char)(color[0] * 255.0f);
+			ifree(color);
 		}
 	}
 
@@ -96,6 +91,4 @@ bool Image::write(const char * filename2) {
 	delete[] buf;
 
 	fclose(file);
-	printf("Image saved to %s!\n", filename);
-	return true;
 }

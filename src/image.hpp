@@ -14,5 +14,5 @@ public:
 	~Image();
 	
 	void load(char* path);
-    bool write(const char * filename);
+	void write(const char * filename);
 };
