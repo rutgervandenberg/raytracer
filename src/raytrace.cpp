@@ -67,5 +67,5 @@ void raytrace(Image* image) {
 	}
 	
 	clock_t ticks = clock() - start;
-	printf("%d ms", ticks);
+	printf("%lu ms", ticks);
 }

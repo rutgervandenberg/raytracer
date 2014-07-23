@@ -3,7 +3,7 @@
 
 int main(int argv, char** argc) {
 	// load meshname from commandline
-	char* meshname = "example.obj";
+	const char* meshname = "example.obj";
 	if (argv == 2)
 		meshname = argc[2];
 	Config config("raytrace.cfg");
