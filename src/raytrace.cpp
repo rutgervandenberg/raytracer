@@ -2,6 +2,7 @@
 #include <ctime> /* clock() */
 #include <xmmintrin.h>
 #include <cstdlib>
+#include <cstdio>
 #include "mem.hpp"
 
 void raytrace(Image* image) {
@@ -17,12 +18,12 @@ void raytrace(Image* image) {
 
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
 	corners[0] = _mm_setr_ps(0, 0, 0, 1);
-	corners[1] = _mm_setr_ps(0, 1, 0, 1);
-	corners[2] = _mm_setr_ps(1, 0, 0, 1);
+	corners[1] = _mm_setr_ps(1, 0, 0, 1);
+	corners[2] = _mm_setr_ps(0, 1, 0, 1);
 	corners[3] = _mm_setr_ps(1, 1, 0, 1);
 	corners[4] = _mm_setr_ps(0, 0, 1, 1);
-	corners[5] = _mm_setr_ps(0, 1, 1, 1);
-	corners[6] = _mm_setr_ps(1, 0, 1, 1);
+	corners[5] = _mm_setr_ps(1, 0, 1, 1);
+	corners[6] = _mm_setr_ps(0, 1, 1, 1);
 	corners[7] = _mm_setr_ps(1, 1, 1, 1);
 
 	// create rays
@@ -49,20 +50,20 @@ void raytrace(Image* image) {
 			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[1], val2));
 			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[2], val3));
 			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[3], val4));
-			__m128 ray2 = _mm_mul_ps(corners[0], val1);
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[1], val2));
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[2], val3));
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[3], val4));
+			__m128 ray2 = _mm_mul_ps(corners[4], val1);
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[5], val2));
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[6], val3));
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[7], val4));
 
-			rays[(y * 640 + x) * 2 + 0] = ray1;
-			rays[(y * 640 + x) * 2 + 1] = ray2;
+			rays[(y * w + x) * 2 + 0] = ray1;
+			rays[(y * w + x) * 2 + 1] = ray2;
 		}
 	}
 
 	// fill
-	for (int y = 0; y < 480; y++) {
-		for (int x = 0; x < 640; x++) {
-			image->data[y * 640 + x] = rays[(y * 640 + x) * 2 + 0];
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			image->data[y * w + x] = rays[(y * w + x) * 2 + 1];
 		}
 	}
 	

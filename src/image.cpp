@@ -15,8 +15,8 @@ Image::Image() {
 }
 
 Image::Image(int width, int height) {
-	width = 0;
-	height = 0;
+	this->width = width;
+	this->height = height;
 	data = (__m128*)ialloc(16 * 3 * width * height);
 }
 
@@ -54,8 +54,9 @@ bool Image::write(const char * filename2) {
 	0x00, 0x00, 0x00, 0x00,
 	0x08, 0xF6, 0x02, 0x00,
 	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00 };
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00 };
 
 	// allocate buffer for converted image
 	int len = width * height * 3;
@@ -67,17 +68,24 @@ bool Image::write(const char * filename2) {
 	unsigned int* h = (unsigned int*) (header + 22);
 
 	// modify header
-	*filesize = htonl(sizeof(header) + len);
-	*w = htonl(width);
-	*h = htonl(height);
+	*filesize = (sizeof(header) + len);
+	*w = (width);
+	*h = (height);
 
 	// fill buffer, convert from RGB to BGR
-	for (int i = 0; i < width * height; i++) {
-		float color[4];
-		_mm_store_ps(color, data[i]);
-		buf[i * 3 + 0] = (unsigned char) (color[0] * 255.0f);
-		buf[i * 3 + 1] = (unsigned char) (color[1] * 255.0f);
-		buf[i * 3 + 2] = (unsigned char) (color[2] * 255.0f);
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int i1 = y * width + x;
+			int i2 = (height - 1 - y) * width + x;
+			float color[4];
+			color[0] = data[i1].m128_f32[2];
+			color[1] = data[i1].m128_f32[1];
+			color[2] = data[i1].m128_f32[0];
+			//_mm_store_ps(color, data[i]);
+			buf[i2 * 3 + 0] = (unsigned char)(color[0] * 255.0f);
+			buf[i2 * 3 + 1] = (unsigned char)(color[1] * 255.0f);
+			buf[i2 * 3 + 2] = (unsigned char)(color[2] * 255.0f);
+		}
 	}
 
 	// write to file
