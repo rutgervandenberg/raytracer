@@ -31,7 +31,7 @@ void Image::write(const char * filename2) {
 	FILE* file;
 	file = fopen(filename, "wb");
 	if (!file)
-		throw exception("file not found");
+		throw string("file not found");
 
 	// bitmap header
 	unsigned char header[] = {
