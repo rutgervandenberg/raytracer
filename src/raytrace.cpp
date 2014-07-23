@@ -1,10 +1,9 @@
-#include "raytrace.hpp"
 #include <ctime> /* clock() */
 #include <xmmintrin.h>
 #include <cstdlib>
 #include <cstdio>
 #include "mem.hpp"
-
+#include "raytrace.hpp"
 void raytrace(Image* image) {
 	// short names
 	int w = image->width;

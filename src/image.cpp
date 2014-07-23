@@ -1,4 +1,5 @@
 #include <cstdio> /* file output */
+#include <string>
 #include "mem.hpp"
 #include "image.hpp"
 using namespace std;

@@ -6,7 +6,7 @@ using namespace std;
 class Image {
 public:
 	int width;
-    int height;
+	int height;
 	__m128* data;
 
 	Image();
