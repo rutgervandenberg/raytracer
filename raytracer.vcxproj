@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\config.hpp" />
+    <ClInclude Include="src\cpuinfo.hpp" />
     <ClInclude Include="src\image.hpp" />
     <ClInclude Include="src\mem.hpp" />
     <ClInclude Include="src\mesh.hpp" />
@@ -84,6 +85,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.cpp" />
+    <ClCompile Include="src\cpuinfo.cpp" />
     <ClCompile Include="src\image.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mem.cpp" />

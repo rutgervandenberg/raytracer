@@ -5,7 +5,7 @@
 #include <vector>
 using namespace std;
 
-float random() {
+float random1() {
 	return (rand() % 255) / 255.0f;
 }
 
@@ -30,14 +30,14 @@ Mesh::Mesh(const char* path) {
 
 		// read a face
 		else if (token == "f") {
-			int i, j, k;
+			unsigned i, j, k;
 			in >> i >> j >> k;
 			if (i > temppolys.size() || j > temppolys.size() || k > temppolys.size())
 				throw "non sequitur";
 			temppolys.push_back(tempverts[i]);
 			temppolys.push_back(tempverts[j]);
 			temppolys.push_back(tempverts[k]);
-			tempcolors.push_back(_mm_set_ps(random(), random(), random(), 1.0f));
+			tempcolors.push_back(_mm_set_ps(random1(), random1(), random1(), 1.0f));
 		}
 
 		// skip this line

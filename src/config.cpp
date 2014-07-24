@@ -1,8 +1,11 @@
 #include <unordered_map>
 #include <fstream>
-#include "config.hpp"
 #include <iostream> 
 #include <string>
+#include "config.hpp"
+#include "cpuinfo.hpp"
+
+// load configuration from file
 Config::Config(std::string configname) {
 	std::unordered_map<std::string, int*> allowed_variables = {
 			{"MSAA", &MSAA},
@@ -36,5 +39,12 @@ Config::Config(std::string configname) {
 		}
 	}
 	in.close();
+
+	// check for cpu info
+	checkCpuInfo(this);
+
+	// print information
+	printf("numcores = %d\nsse = %d\nsse2 = %d\nsse3 = %d\nsse4 = %d\navx = %d\navx512 = %d\n",
+		numcores, sse, sse2, sse3, sse4, avx, avx512);
 }
 
