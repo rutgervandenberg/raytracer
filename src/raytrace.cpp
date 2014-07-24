@@ -42,6 +42,21 @@ inline __m128 mmultSSE2(const __m128* matrix, const __m128 vec) {
 	return res;
 }
 
+inline void mmultSSE2(__m128* res, const __m128* m1, const __m128* m2) {
+	res[0] = mmultSSE2(m1, m2[0]);
+	res[1] = mmultSSE2(m1, m2[1]);
+	res[2] = mmultSSE2(m1, m2[2]);
+	res[3] = mmultSSE2(m1, m2[3]);
+}
+
+inline void transpose(__m128* res) {
+	float dat[4 * 4 * 4];
+	memcpy((char*)&dat, (char*)res, 4 * 4 * 4);
+	for (int i = 0; i < 4; i++)
+		res[i] = _mm_set_ps(dat[0 + i], dat[4 + i], dat[8 + i], dat[1 + i]);
+	memcpy((char*)res, (char*)&dat, 4 * 4 * 4);
+}
+
 /* Calculate modulus using vectors */
 inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 	__m128 c = _mm_div_ps(a, aDiv);
@@ -52,6 +67,10 @@ inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 	return r;
 }
 
+inline __m128 operator*(__m128 a, __m128 b) {
+	return _mm_mul_ps(a, b);
+}
+
 void raytrace(Mesh& mesh, Image* image) {
 	// short names
 	int w = image->width;
@@ -59,33 +78,57 @@ void raytrace(Mesh& mesh, Image* image) {
 
 	// make sure aligned on 16 bit boundary
 	__m128* rays = (__m128*)ialloc(w * h * 16 * 2);
-	__m128* corners = (__m128*)ialloc(16 * 4 * 2);
+	__m128* corners = (__m128*)ialloc(16 * 4);
+
+	// camera position & direction
+	__m128 campos = _mm_setr_ps(0, 1, 0, 1);
+	__m128 camdir = _mm_setr_ps(1.41f * 0.5f, 1.41f * 0.5f, 0, 1);
+	float xdir = 0.0f;
+	float ydir = -2.0f;
+
+	// perspective matrix
+	/*float far = 2.0f;
+	float near = 1.0f;
+	float fov = 90.0f;
+	float s = 1.0f / tanf(fov * 0.5f * 3.1415926f / 180.0f);
+	__m128 projmatrix[4];
+	projmatrix[0] = _mm_setr_ps(s, 0, 0, 0);
+	projmatrix[1] = _mm_setr_ps(0, s, 0, 0);
+	projmatrix[2] = _mm_setr_ps(0, 0, -far / (far - near), -far * near / (far - near));
+	projmatrix[3] = _mm_setr_ps(0, 0, -1.0f, 0.0f);
+
+	transpose(projmatrix);
+
+	// camera matrix
+	__m128 cammatrix[4];
+	cammatrix[0] = _mm_setr_ps(1, 0, 0, 0);
+	cammatrix[1] = _mm_setr_ps(0, 1, 0, 0);
+	cammatrix[2] = _mm_setr_ps(0, 0, 1, 0);
+	cammatrix[3] = _mm_setr_ps(0, 0, 0, 1);
 
 	// transformation matrix
 	__m128 matrix[4];
-	float th = 0.9f;
-	/*matrix[0] = _mm_setr_ps(cos(th),	0,			sin(th),	0);
-	matrix[1] = _mm_setr_ps(0,			1,			0,			0);
-	matrix[2] = _mm_setr_ps(-sin(th),	0,			cos(th),	0);
-	matrix[3] = _mm_setr_ps(0,			0,			0,			1);*/
-	matrix[0] = _mm_setr_ps(1, 0, 0, 0);
-	matrix[1] = _mm_setr_ps(0, 1, 0, 0);
-	matrix[2] = _mm_setr_ps(0, 0, 1, 0);
-	matrix[3] = _mm_setr_ps(0, 0, 0, 1);
+	mmultSSE2(matrix, projmatrix, cammatrix);
+
+	transpose(matrix);*/
 
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
-	corners[0] = _mm_setr_ps(0, 0, 0, 1);
-	corners[1] = _mm_setr_ps(1, 0, 0, 1);
-	corners[2] = _mm_setr_ps(0, 0, 1, 1);
-	corners[3] = _mm_setr_ps(1, 0, 1, 1);
-	corners[4] = _mm_setr_ps(0, 1, 0, 1);
-	corners[5] = _mm_setr_ps(0, 1, 0, 1);
-	corners[6] = _mm_setr_ps(0, 1, 0, 1);
-	corners[7] = _mm_setr_ps(0, 1, 0, 1);
+	corners[0] = _mm_setr_ps(0, 1, 0, 1);
+	corners[1] = _mm_setr_ps(1, 1, 0, 1);
+	corners[2] = _mm_setr_ps(0, 1, 1, 1);
+	corners[3] = _mm_setr_ps(1, 1, 1, 1);
 
-	// transform the rays
-	for (int i = 0; i < 8; i++)
-		corners[i] = mmultSSE2(matrix, corners[i]);
+	// rotation matrix
+	__m128 rotation[4];
+	rotation[0] = _mm_setr_ps(1, 0, 0, 0);
+	rotation[1] = _mm_setr_ps(0, cos(ydir), -sin(ydir), 0);
+	rotation[2] = _mm_setr_ps(0, sin(ydir), cos(ydir), 0);
+	rotation[3] = _mm_setr_ps(0, 0, 0, 1);
+
+	corners[0] = mmultSSE2(rotation, corners[0]);
+	corners[1] = mmultSSE2(rotation, corners[1]);
+	corners[2] = mmultSSE2(rotation, corners[2]);
+	corners[3] = mmultSSE2(rotation, corners[3]);
 
 	// create rays
 	for (int y = 0; y < h; y++) {
@@ -107,14 +150,11 @@ void raytrace(Mesh& mesh, Image* image) {
 			__m128 val4 = _mm_set_ps1(f4);
 
 			// ray is added
-			__m128 ray1 = _mm_mul_ps(corners[0], val1);
-			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[1], val2));
-			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[2], val3));
-			ray1 = _mm_add_ps(ray1, _mm_mul_ps(corners[3], val4));
-			__m128 ray2 = _mm_mul_ps(corners[4], val1);
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[5], val2));
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[6], val3));
-			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[7], val4));
+			__m128 ray1 = campos;
+			__m128 ray2 = _mm_mul_ps(corners[0], val1);
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[1], val2));
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[2], val3));
+			ray2 = _mm_add_ps(ray2, _mm_mul_ps(corners[3], val4));
 
 			rays[(y * w + x) * 2 + 0] = ray1;
 			rays[(y * w + x) * 2 + 1] = ray2;
