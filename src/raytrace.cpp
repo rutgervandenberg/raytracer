@@ -4,6 +4,7 @@
 #include <cstdio>
 #include "mem.hpp"
 #include "raytrace.hpp"
+#include <pmmintrin.h>
 
 // this is non-optimal as it's individual (?)
 /*inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
@@ -59,8 +60,6 @@ void raytrace(Mesh& mesh, Image* image) {
 	// make sure aligned on 16 bit boundary
 	__m128* rays = (__m128*)ialloc(w * h * 16 * 2);
 	__m128* corners = (__m128*)ialloc(16 * 4 * 2);
-
-	clock_t start = clock();
 
 	// transformation matrix
 	__m128 matrix[4];
@@ -151,7 +150,4 @@ void raytrace(Mesh& mesh, Image* image) {
 		}
 	}
 	ifree(val);
-	
-	clock_t ticks = clock() - start;
-	printf("%lu ms\n", ticks);
 }

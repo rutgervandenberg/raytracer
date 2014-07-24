@@ -1,3 +1,6 @@
+#include <iostream>
+#include <ctime>
+#include <cstdio>
 #include "config.hpp"
 #include "raytrace.hpp"
 #include "mesh.hpp"
@@ -13,7 +16,14 @@ int main(int argv, char** argc) {
 	Config config("raytrace.cfg");
 	Image image(config.RAYTRACE_RES_X, config.RAYTRACE_RES_Y);
 
+
+	double duration;
+    std::clock_t start = std::clock();
+
 	raytrace(mesh, &image);
+
+    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC * 1000; 
+    cout<<"Traced in: "<< duration <<" ms\n";
 
 	image.write("output");
 
