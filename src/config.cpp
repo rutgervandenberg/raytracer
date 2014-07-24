@@ -14,6 +14,7 @@ Config::Config(std::string configname) {
 			{"RAYTRACE_RES_X", &RAYTRACE_RES_X},
 			{"RAYTRACE_RES_Y", &RAYTRACE_RES_Y},
 			{"VISIBILITY_TRESHOLD", &VISIBILITY_TRESHOLD}
+			{"FIELD_OF_VIEW", &FIELD_OF_VIEW}
 	};
 
 	std::ifstream in(configname);
