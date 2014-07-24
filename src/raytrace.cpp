@@ -2,9 +2,12 @@
 #include <xmmintrin.h>
 #include <cstdlib>
 #include <cstdio>
+#include <cmath> 
 #include "mem.hpp"
 #include "raytrace.hpp"
 #include <pmmintrin.h>
+#include <cstring> 
+#include <x86intrin.h>
 
 // this is non-optimal as it's individual (?)
 /*inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
@@ -67,9 +70,9 @@ inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 	return r;
 }
 
-inline __m128 operator*(__m128 a, __m128 b) {
+/*inline __m128 operator*(__m128 a, __m128 b) {
 	return _mm_mul_ps(a, b);
-}
+}*/
 
 __m128 intersect(__m128 vec, __m128* tr) {
 

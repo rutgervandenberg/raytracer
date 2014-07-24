@@ -12,8 +12,8 @@ float random1() {
 
 Mesh::Mesh(const char* path) {
 	// temp data
-	vector<__m128> tempverts(1000000);
-	vector<__m128> temppolys(1000000);
+	vector<__m128> tempvertices(1000000);
+	vector<__m128> temptriangles(1000000);
 	vector<__m128> tempcolors(1000000);
 
 	// reading
@@ -26,18 +26,18 @@ Mesh::Mesh(const char* path) {
 		if (token == "v") {
 			float x, y, z;
 			in >> x >> y >> z;
-			temppolys.push_back(_mm_set_ps(x, y, z, 1));
+			tempvertices.push_back(_mm_set_ps(x, y, z, 1));
 		}
 
 		// read a face
 		else if (token == "f") {
 			unsigned i, j, k;
 			in >> i >> j >> k;
-			if (i > temppolys.size() || j > temppolys.size() || k > temppolys.size())
-				throw "non sequitur";
-			temppolys.push_back(tempverts[i]);
-			temppolys.push_back(tempverts[j]);
-			temppolys.push_back(tempverts[k]);
+			if (i > temptriangles.size() || j > temptriangles.size() || k > temptriangles.size())
+				throw "vertex index out of bounds";
+			temptriangles.push_back(tempvertices[i]);
+			temptriangles.push_back(tempvertices[j]);
+			temptriangles.push_back(tempvertices[k]);
 			tempcolors.push_back(_mm_set_ps(random1(), random1(), random1(), 1.0f));
 		}
 
@@ -48,14 +48,15 @@ Mesh::Mesh(const char* path) {
 	}
 
 	// copy to self
-	polys = (__m128*)ialloc(temppolys.size() * 16);
-	memcpy(polys, &temppolys[0], temppolys.size() * 16);
+	triangles = (__m128*)ialloc(temptriangles.size() * 16);
+	memcpy(triangles, &temptriangles[0], temptriangles.size() * 16);
 
 	// colors
-	colors = (__m128*)ialloc(temppolys.size() * 16);
+	colors = (__m128*)ialloc(temptriangles.size() * 16);
 	memcpy(colors, &tempcolors[0], tempcolors.size() * 16);
 }
 
 Mesh::~Mesh() {
-	ifree(polys);
+	ifree(triangles);
+	ifree(colors);
 }
