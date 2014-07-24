@@ -71,6 +71,50 @@ inline __m128 operator*(__m128 a, __m128 b) {
 	return _mm_mul_ps(a, b);
 }
 
+__m128 intersect(__m128 vec, __m128* tr) {
+
+	// (float *p, float *d,
+	// float *v0, float *v1, float *v2) {
+
+	// float e1[3], e2[3], h[3], s[3], q[3];
+	float a, f, u, v;
+	__m128 e1 = _mm_sub_ps(tr[1], tr[0]);
+	__m128 e2 = _mm_sub_ps(tr[2], tr[0]);
+
+	__m128 h = _mm_mul_ps(vec /* d */, e2);
+	// crossProduct(h, d, e2);
+	a = innerProduct(e1, h);
+
+	if (a > -0.00001 && a < 0.00001)
+		return(false);
+
+	f = 1 / a;
+	__m128 s = _mm_sub_ps(vec, tr[0]);
+	u = f * (innerProduct(s, h));
+
+	if (u < 0.0 || u > 1.0)
+		return(false);
+
+	// crossProduct(q, s, e1);
+	__m128 q = _mm_mul_ps(s, e1);
+	v = f * innerProduct(d, q);
+
+	if (v < 0.0 || u + v > 1.0)
+		return(false);
+
+	// at this stage we can compute t to find out where
+	// the intersection point is on the line
+	t = f * innerProduct(e2, q);
+
+	if (t > 0.00001) // ray intersection
+		return(true);
+
+	else // this means that there is a line intersection
+		// but not a ray intersection
+		return (false);
+
+}
+
 void raytrace(Mesh& mesh, Image* image) {
 	// short names
 	int w = image->width;
@@ -84,37 +128,11 @@ void raytrace(Mesh& mesh, Image* image) {
 	__m128 campos = _mm_setr_ps(0, 1, 0, 1);
 	__m128 camdir = _mm_setr_ps(1.41f * 0.5f, 1.41f * 0.5f, 0, 1);
 	float xdir = 0.0f;
-	float ydir = -2.0f;
-
-	// perspective matrix
-	/*float far = 2.0f;
-	float near = 1.0f;
-	float fov = 90.0f;
-	float s = 1.0f / tanf(fov * 0.5f * 3.1415926f / 180.0f);
-	__m128 projmatrix[4];
-	projmatrix[0] = _mm_setr_ps(s, 0, 0, 0);
-	projmatrix[1] = _mm_setr_ps(0, s, 0, 0);
-	projmatrix[2] = _mm_setr_ps(0, 0, -far / (far - near), -far * near / (far - near));
-	projmatrix[3] = _mm_setr_ps(0, 0, -1.0f, 0.0f);
-
-	transpose(projmatrix);
-
-	// camera matrix
-	__m128 cammatrix[4];
-	cammatrix[0] = _mm_setr_ps(1, 0, 0, 0);
-	cammatrix[1] = _mm_setr_ps(0, 1, 0, 0);
-	cammatrix[2] = _mm_setr_ps(0, 0, 1, 0);
-	cammatrix[3] = _mm_setr_ps(0, 0, 0, 1);
-
-	// transformation matrix
-	__m128 matrix[4];
-	mmultSSE2(matrix, projmatrix, cammatrix);
-
-	transpose(matrix);*/
+	float ydir = 0.3f;
 
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
-	corners[0] = _mm_setr_ps(0, 1, 0, 1);
-	corners[1] = _mm_setr_ps(1, 1, 0, 1);
+	corners[0] = _mm_setr_ps(0, 0, 1, 1);
+	corners[1] = _mm_setr_ps(1, 0, 1, 1);
 	corners[2] = _mm_setr_ps(0, 1, 1, 1);
 	corners[3] = _mm_setr_ps(1, 1, 1, 1);
 
