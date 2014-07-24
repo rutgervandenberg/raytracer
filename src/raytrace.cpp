@@ -6,8 +6,13 @@
 #include "mem.hpp"
 #include "raytrace.hpp"
 #include <pmmintrin.h>
-#include <cstring> 
+#include <cstring>
+
+#ifdef _WIN32
+#include <intrin.h>
+#else
 #include <x86intrin.h>
+#endif
 
 // this is non-optimal as it's individual (?)
 /*inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
@@ -68,54 +73,6 @@ inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 	__m128 base = _mm_mul_ps(cTrunc, aDiv);
 	__m128 r = _mm_sub_ps(a, base);
 	return r;
-}
-
-/*inline __m128 operator*(__m128 a, __m128 b) {
-	return _mm_mul_ps(a, b);
-}*/
-
-__m128 intersect(__m128 vec, __m128* tr) {
-
-	// (float *p, float *d,
-	// float *v0, float *v1, float *v2) {
-
-	// float e1[3], e2[3], h[3], s[3], q[3];
-	float a, f, u, v;
-	__m128 e1 = _mm_sub_ps(tr[1], tr[0]);
-	__m128 e2 = _mm_sub_ps(tr[2], tr[0]);
-
-	__m128 h = _mm_mul_ps(vec /* d */, e2);
-	// crossProduct(h, d, e2);
-	a = innerProduct(e1, h);
-
-	if (a > -0.00001 && a < 0.00001)
-		return(false);
-
-	f = 1 / a;
-	__m128 s = _mm_sub_ps(vec, tr[0]);
-	u = f * (innerProduct(s, h));
-
-	if (u < 0.0 || u > 1.0)
-		return(false);
-
-	// crossProduct(q, s, e1);
-	__m128 q = _mm_mul_ps(s, e1);
-	v = f * innerProduct(d, q);
-
-	if (v < 0.0 || u + v > 1.0)
-		return(false);
-
-	// at this stage we can compute t to find out where
-	// the intersection point is on the line
-	t = f * innerProduct(e2, q);
-
-	if (t > 0.00001) // ray intersection
-		return(true);
-
-	else // this means that there is a line intersection
-		// but not a ray intersection
-		return (false);
-
 }
 
 void raytrace(Mesh& mesh, Image* image) {

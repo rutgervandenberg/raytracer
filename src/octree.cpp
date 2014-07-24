@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <xmmintrin.h>
 #include <immintrin.h>
-#include "raytrace.h"
+#include "raytrace.hpp"
 
 Octree::Octree(__m128& position, float halfsize, unsigned int max_depth) : sub(0), position(position), halfsize(halfsize), max_depth(max_depth) {
 }
@@ -35,7 +35,7 @@ void Octree::split() {
 	for (int x = 0; x < 2; x++){
 		for (int y = 0; y < 2; y++){
 			for (int z = 0; z < 2; z++){
-				__m128 subpos(position + _mm_setr_ps(x * halfsize, y * halfsize, z * halfsize, 1));
+				__m128 subpos = _mm_add_ps(position, _mm_setr_ps(x * halfsize, y * halfsize, z * halfsize, 1));
 				float subhalfsize = halfsize * 0.5f;
 
 				sub[z * 4 + y * 2 + x] = new Octree(subpos, subhalfsize, halfsize);
