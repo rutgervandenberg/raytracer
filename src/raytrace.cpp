@@ -4,7 +4,21 @@
 #include <cstdio>
 #include "mem.hpp"
 #include "raytrace.hpp"
-void raytrace(Image* image) {
+
+// this is non-optimal as it's individual
+inline __m128 mmult(const __m128* matrix, const __m128 vec) {
+	__m128 r = _mm_setzero_ps();
+	__m128 r1 = _mm_dp_ps(vec, matrix[0], 0x7F);
+	__m128 r2 = _mm_dp_ps(vec, matrix[1], 0x7F);
+	__m128 r3 = _mm_dp_ps(vec, matrix[2], 0x7F);
+	__m128 r4 = _mm_dp_ps(vec, matrix[3], 0x7F);
+	r = _mm_blend_ps(r1, r2, 0x2);
+	r = _mm_blend_ps(r, r3, 0x4);
+	r = _mm_blend_ps(r, r4, 0x8);
+	return r;
+}
+
+void raytrace(Mesh& mesh, Image* image) {
 	// short names
 	int w = image->width;
 	int h = image->height;
@@ -15,15 +29,27 @@ void raytrace(Image* image) {
 
 	clock_t start = clock();
 
+	// transformation matrix
+	__m128 matrix[4];
+	float th = 0.9f;
+	matrix[0] = _mm_setr_ps(cos(th),	0,			-sin(th),	0);
+	matrix[1] = _mm_setr_ps(0,			1,			0,			0);
+	matrix[2] = _mm_setr_ps(sin(th),	0,			cos(th),	0);
+	matrix[3] = _mm_setr_ps(0,			0,			0,			1);
+
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
 	corners[0] = _mm_setr_ps(0, 0, 0, 1);
 	corners[1] = _mm_setr_ps(1, 0, 0, 1);
-	corners[2] = _mm_setr_ps(0, 1, 0, 1);
-	corners[3] = _mm_setr_ps(1, 1, 0, 1);
-	corners[4] = _mm_setr_ps(0, 0, 1, 1);
-	corners[5] = _mm_setr_ps(1, 0, 1, 1);
-	corners[6] = _mm_setr_ps(0, 1, 1, 1);
-	corners[7] = _mm_setr_ps(1, 1, 1, 1);
+	corners[2] = _mm_setr_ps(0, 0, 1, 1);
+	corners[3] = _mm_setr_ps(1, 0, 1, 1);
+	corners[4] = _mm_setr_ps(-.5f, 1, -.5f, 1);
+	corners[5] = _mm_setr_ps(0, 1, 0, 1);
+	corners[6] = _mm_setr_ps(0, 1, 0, 1);
+	corners[7] = _mm_setr_ps(0, 1, 0, 1);
+
+	// transform the rays
+	for (int i = 0; i < 8; i++)
+		corners[i] = mmult(matrix, corners[i]);
 
 	// create rays
 	for (int y = 0; y < h; y++) {
@@ -62,7 +88,24 @@ void raytrace(Image* image) {
 	// fill
 	for (int y = 0; y < h; y++) {
 		for (int x = 0; x < w; x++) {
-			image->data[y * w + x] = rays[(y * w + x) * 2 + 1];
+			// pos
+			float a = rays[(y * w + x) * 2 + 0].m128_f32[1]
+				/ rays[(y * w + x) * 2 + 1].m128_f32[1];
+			__m128 f = _mm_set1_ps(a);
+			__m128 impact = _mm_add_ps(rays[(y * w + x) * 2 + 0],
+				_mm_mul_ps(f, rays[(y * w + x) * 2 + 1]));
+
+			bool white = true;
+			if (fmodf(impact.m128_f32[0], 0.2f) > 0.1f)
+				white = !white;
+			if (fmodf(impact.m128_f32[2], 0.2f) > 0.1f)
+				white = !white;
+
+			// set color
+			if (white)
+				image->data[y * w + x] = _mm_setr_ps(1, 1, 1, 1);
+			else
+				image->data[y * w + x] = _mm_setr_ps(0, 0, 0, 1);
 		}
 	}
 	

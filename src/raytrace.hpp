@@ -1,4 +1,5 @@
 #pragma once
 #include "image.hpp"
+#include "mesh.hpp"
 
-void raytrace(Image* image);
+void raytrace(Mesh& mesh, Image* image);
