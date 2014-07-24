@@ -6,7 +6,7 @@
 #include "raytrace.hpp"
 
 // this is non-optimal as it's individual (?)
-inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
+/*inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
 	__m128 r = _mm_setzero_ps();
 	__m128 r1 = _mm_dp_ps(vec, matrix[0], 0x7F);
 	__m128 r2 = _mm_dp_ps(vec, matrix[1], 0x7F);
@@ -16,7 +16,7 @@ inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
 	r = _mm_blend_ps(r, r3, 0x4);
 	r = _mm_blend_ps(r, r4, 0x8);
 	return r;
-}
+}*/
 
 inline __m128 mmultSSE2(const __m128* matrix, const __m128 vec) {
 	__m128 res;
@@ -127,8 +127,10 @@ void raytrace(Mesh& mesh, Image* image) {
 	for (int y = 0; y < h; y++) {
 		for (int x = 0; x < w; x++) {
 			// pos
-			float a = rays[(y * w + x) * 2 + 0].m128_f32[1]
-				/ rays[(y * w + x) * 2 + 1].m128_f32[1];
+			__m128 fac = _mm_div_ps(rays[(y * w + x) * 2 + 0], rays[(y * w + x) * 2 + 1]);
+			_mm_store_ps(val, fac);
+			float a = val[1];
+
 			__m128 f = _mm_set1_ps(a);
 			__m128 impact = _mm_add_ps(rays[(y * w + x) * 2 + 0],
 				_mm_mul_ps(f, rays[(y * w + x) * 2 + 1]));
@@ -151,5 +153,5 @@ void raytrace(Mesh& mesh, Image* image) {
 	ifree(val);
 	
 	clock_t ticks = clock() - start;
-	printf("%lu ms", ticks);
+	printf("%lu ms\n", ticks);
 }

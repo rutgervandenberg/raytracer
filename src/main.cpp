@@ -15,7 +15,7 @@ int main(int argv, char** argc) {
 
 	raytrace(mesh, &image);
 
-	image.write("output.bmp");
+	image.write("output");
 
 	system("pause");
 }
