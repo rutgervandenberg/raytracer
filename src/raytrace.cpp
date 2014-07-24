@@ -7,6 +7,7 @@
 #include "raytrace.hpp"
 #include <pmmintrin.h>
 #include <cstring> 
+#include <x86intrin.h>
 
 // this is non-optimal as it's individual (?)
 /*inline __m128 mmultSSE4(const __m128* matrix, const __m128 vec) {
