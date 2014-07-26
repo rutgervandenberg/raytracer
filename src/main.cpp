@@ -7,7 +7,7 @@
 
 int main(int argv, char** argc) {
 	// load meshname from commandline
-	const char* meshname = "dragon.obj";
+	const char* meshname = "mesh/cube.obj";
 	if (argv == 2)
 		meshname = argc[2];
 

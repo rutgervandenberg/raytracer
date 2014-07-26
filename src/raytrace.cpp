@@ -27,6 +27,107 @@
 	return r;
 }*/
 
+inline __m128 _mm_cp_ps(__m128 a, __m128 b)
+{
+	return _mm_sub_ps(
+		_mm_mul_ps(
+		_mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 0, 2, 1)),
+		_mm_shuffle_ps(b, b, _MM_SHUFFLE(3, 1, 0, 2))
+		),
+		_mm_mul_ps(
+		_mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 1, 0, 2)),
+		_mm_shuffle_ps(b, b, _MM_SHUFFLE(3, 0, 2, 1))
+		)
+		);
+}
+
+/*inline __m128 operator*(__m128 a, __m128 b) {
+return _mm_mul_ps(a, b);
+}*/
+
+// p = point, d = dir, tr = triangle
+// h = P, s = T
+
+__m128 intersect(__m128 p, __m128 d, __m128* tr) {
+	// axes of the triangle
+	__m128 e1 = _mm_sub_ps(tr[1], tr[0]);
+	__m128 e2 = _mm_sub_ps(tr[2], tr[0]);
+
+	// how parallel the ray and triangle are
+	__m128 h = _mm_cp_ps(d, e2);
+	__m128 det = _mm_dp_ps(e1, h, 0xFF);
+
+	// if parallel, quit
+	// if a > -0.00001 && a < 0.00001 return false
+	__m128 cmp1 = _mm_cmplt_ss(det, _mm_set_ss(0.00001f));
+	__m128 cmp2 = _mm_cmpgt_ss(det, _mm_set_ss(-0.00001f));
+	__m128 cmp = _mm_and_ps(cmp1, cmp2);
+	int temp;
+	_mm_store_ss((float*) &temp, cmp);
+	if (temp)
+		return _mm_setzero_ps();
+	
+	// precalc
+	__m128 f = _mm_div_ps(_mm_set1_ps(1.0f), det);
+
+	// relative offset
+	__m128 s = _mm_sub_ps(tr[0], p);
+
+	// scalar on first axis
+	__m128 u = _mm_mul_ps(f, _mm_dp_ps(s, h, 0x7F));
+
+	// if u < 0.0 || u > 1.0 return false
+	cmp1 = _mm_cmplt_ss(u, _mm_set_ss(0.0f));
+	cmp2 = _mm_cmpgt_ss(u, _mm_set_ss(1.0f));
+	cmp = _mm_or_ps(cmp1, cmp2);
+	_mm_store_ss((float*)&temp, cmp);
+	if (temp)
+		return _mm_setzero_ps();
+
+	__m128 q = _mm_cp_ps(s, e1);
+	//v = _mm_dp_ps(f, _mm_mul_ps(d, q));
+	__m128 v = _mm_mul_ps(f, _mm_dp_ps(d, q, 0x7F));
+
+	// if v < 0.0 || u + v > 1.0) return false
+	cmp1 = _mm_cmplt_ss(v, _mm_set_ss(0.0f));
+	cmp2 = _mm_cmpgt_ss(_mm_add_ss(u, v), _mm_set_ss(1.0f));
+	cmp = _mm_or_ps(cmp1, cmp2);
+	_mm_store_ss((float*)&temp, cmp);
+	if (temp)
+		return _mm_setzero_ps();
+	//if (v.m128_f32[0] < 0.0f || u.m128_f32[0] + v.m128_f32[0] > 1.0f)
+	//	return _mm_setzero_ps();
+
+	// at this stage we can compute t to find out where
+	// the intersection point is on the line
+	__m128 t = _mm_mul_ps(f, _mm_dp_ps(e2, q, 0x7F));
+
+	// if t > 0.00001 // ray intersection
+	//cmp = _mm_cmple_ss(t, _mm_set1_ps(0.00001f));
+	//_mm_store_ss((float*)&temp, cmp);
+	//if (temp)
+	//	return _mm_setzero_ps();
+
+	return _mm_add_ps(p, _mm_mul_ps(t, d));
+ }
+
+void testintersect() {
+	__m128 poly[3];
+	poly[2] = _mm_setr_ps(1, 1, 0, 1);
+	poly[1] = _mm_setr_ps(2, 1, 0, 1);
+	poly[0] = _mm_setr_ps(1, 2, 0, 1);
+
+	__m128 ray1[2];
+	ray1[0] = _mm_setr_ps(1.25f, 1.25f, -1, 1);
+	ray1[1] = _mm_setr_ps(0, 0, 1, 1);
+
+	__m128 res1 = intersect(ray1[0], ray1[1], poly);
+	__m128 exp1 = _mm_setr_ps(0.25f, 0.25f, 0, 1);
+
+	//if (memcmp(&res1, &exp1, 16))
+	//	printf("TEST FAILED!");
+}
+
 inline __m128 mmultSSE2(const __m128* matrix, const __m128 vec) {
 	__m128 res;
 	__m128 r1, r2;
@@ -76,6 +177,8 @@ inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 }
 
 void raytrace(Mesh& mesh, Image* image) {
+	testintersect();
+
 	// short names
 	int w = image->width;
 	int h = image->height;
@@ -85,16 +188,16 @@ void raytrace(Mesh& mesh, Image* image) {
 	__m128* corners = (__m128*)ialloc(16 * 4);
 
 	// camera position & direction
-	__m128 campos = _mm_setr_ps(0, 1, 0, 1);
+	__m128 campos = _mm_setr_ps(0, 0, 10, 1);
 	__m128 camdir = _mm_setr_ps(1.41f * 0.5f, 1.41f * 0.5f, 0, 1);
 	float xdir = 0.0f;
-	float ydir = 0.3f;
+	float ydir = 0.0f;
 
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
-	corners[0] = _mm_setr_ps(0, 0, 1, 1);
-	corners[1] = _mm_setr_ps(1, 0, 1, 1);
-	corners[2] = _mm_setr_ps(0, 1, 1, 1);
-	corners[3] = _mm_setr_ps(1, 1, 1, 1);
+	corners[0] = _mm_setr_ps(-0.5f, -0.5f, 1, 1);
+	corners[1] = _mm_setr_ps(0.5f, -0.5f, 1, 1);
+	corners[2] = _mm_setr_ps(-0.5f, 0.5f, 1, 1);
+	corners[3] = _mm_setr_ps(0.5f, 0.5f, 1, 1);
 
 	// rotation matrix
 	__m128 rotation[4];
@@ -107,6 +210,13 @@ void raytrace(Mesh& mesh, Image* image) {
 	corners[1] = mmultSSE2(rotation, corners[1]);
 	corners[2] = mmultSSE2(rotation, corners[2]);
 	corners[3] = mmultSSE2(rotation, corners[3]);
+
+	// example polygon
+	__m128 poly[3];
+	//if (val[0] > 0.1f && val[0] < 0.2f && val[2] > 2.0f && val[2] < 2.1f)
+	poly[0] = _mm_setr_ps(0, 0, 0,1.0f);
+	poly[1] = _mm_setr_ps(0.5f,0, 0,1.0f);
+	poly[2] = _mm_setr_ps(0.0f,0.5f, 0,1.0f);
 
 	// create rays
 	for (int y = 0; y < h; y++) {
@@ -146,7 +256,7 @@ void raytrace(Mesh& mesh, Image* image) {
 			// pos
 			__m128 fac = _mm_div_ps(rays[(y * w + x) * 2 + 0], rays[(y * w + x) * 2 + 1]);
 			_mm_store_ps(val, fac);
-			float a = val[1];
+			float a = val[2];
 
 			__m128 f = _mm_set1_ps(a);
 			__m128 impact = _mm_add_ps(rays[(y * w + x) * 2 + 0],
@@ -157,7 +267,7 @@ void raytrace(Mesh& mesh, Image* image) {
 			_mm_store_ps(val, modulus);
 			if (val[0] > 0.1f)
 				white = !white;
-			if (val[2] > 0.1f)
+			if (val[1] > 0.1f)
 				white = !white;
 
 			// set color
@@ -165,6 +275,25 @@ void raytrace(Mesh& mesh, Image* image) {
 				image->data[y * w + x] = _mm_setr_ps(1, 1, 1, 1);
 			else
 				image->data[y * w + x] = _mm_setr_ps(0, 0, 0, 1);
+
+			// one red square
+			_mm_store_ps(val, impact);
+			if (val[0] > 0.1f && val[0] < 0.2f && val[2] > 2.0f && val[2] < 2.1f)
+				image->data[y * w + x] = _mm_setr_ps(1, 0, 0, 1);
+
+			// polygon intersection
+			__m128 orig = rays[(y * w + x) * 2 + 0];
+			__m128 dir = rays[(y * w + x) * 2 + 1];
+
+			// check intersection with mesh
+			for (int i = 0; i < mesh.numtriangles; i++) {
+				__m128* triangle = &mesh.triangles[i * 3];
+				__m128 res = intersect(orig, dir, triangle);
+				int temp;
+				_mm_store_ss((float*)&temp, res);
+				if (temp)
+					image->data[y * w + x] = _mm_setr_ps(1, 0, 1, 1);
+			}
 		}
 	}
 	ifree(val);
