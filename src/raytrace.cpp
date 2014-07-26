@@ -48,7 +48,12 @@ return _mm_mul_ps(a, b);
 // p = point, d = dir, tr = triangle
 // h = P, s = T
 
+int numintersects;
+int numrays;
+
 __m128 intersect(__m128 p, __m128 d, __m128* tr) {
+	numintersects++;
+
 	// axes of the triangle
 	__m128 e1 = _mm_sub_ps(tr[1], tr[0]);
 	__m128 e2 = _mm_sub_ps(tr[2], tr[0]);
@@ -177,7 +182,6 @@ inline __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 }
 
 void raytrace(Mesh& mesh, Image* image) {
-	testintersect();
 
 	// short names
 	int w = image->width;
@@ -249,10 +253,17 @@ void raytrace(Mesh& mesh, Image* image) {
 		}
 	}
 
-	// fill
+	// measurement
+	numintersects = 0;
+	numrays = 0;
+	clock_t start = clock();
+
+	// perform
 	float* val = (float*)ialloc(4 * 4);
 	for (int y = 0; y < h; y++) {
 		for (int x = 0; x < w; x++) {
+			numrays++;
+
 			// pos
 			__m128 fac = _mm_div_ps(rays[(y * w + x) * 2 + 0], rays[(y * w + x) * 2 + 1]);
 			_mm_store_ps(val, fac);
@@ -296,5 +307,16 @@ void raytrace(Mesh& mesh, Image* image) {
 			}
 		}
 	}
+
+	// measurement
+	clock_t diff = clock() - start;
+	int ms = (int) diff / CLOCKS_PER_SEC;
+	printf("time   = %d ms\n", diff);
+	printf("# rays = %d\n", numrays);
+	printf("# hits = %d\n", numintersects);
+	printf("time per ray = %d ns\n", diff * 1000 * 1000 / numrays);
+	printf("time per hit = %d ns\n", diff * 1000 * 1000 / numintersects);
+
+	// free data
 	ifree(val);
 }
