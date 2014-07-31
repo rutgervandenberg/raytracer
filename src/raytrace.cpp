@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath> 
-#include <pmmintrin.h>
 #include <cstring>
 #include <thread>
 #include <mutex>
@@ -13,31 +12,10 @@
 #include "raytrace.hpp"
 #include "geometry.hpp"
 #include "config.hpp"
+#include "camera.hpp"
 
 int numintersects;
 int numrays;
-
-/**
- *	Perform camera transformations
- *	(z axis: positive is up, zero is floor)
- */
-struct Camera {
-	vec4 pos;
-	vec4 dir;
-	vec4 rotation[4];
-
-	float xdir, ydir;
-
-	Camera(Config& config) {
-	}
-
-	Camera(vec4 pos, float xdir, float ydir) : pos(pos), dir(dir), xdir(xdir), ydir(ydir) {
-		rotation[0] = vec4(1, 0, 0, 0);
-		rotation[1] = vec4(0, cos(ydir), -sin(ydir), 0);
-		rotation[2] = vec4(0, sin(ydir), cos(ydir), 0);
-		rotation[3] = vec4(0, 0, 0, 1);
-	}
-};
 
 void createRays(Camera& cam, Image& image, vec4* rays) {
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
@@ -104,35 +82,13 @@ void createRayPackets(vec4* rays, raypacket<T>* origs, raypacket<T>* dirs, int n
 	}
 }
 
-/* background */
-/*__m128 fac = orig / dir;
-			_mm_store_ps(val, fac);
-			float a = val[2];
-
-			__m128 f = vec4(a);
-			__m128 impact = orig + f * dir;
-
-			bool white = true;
-			__m128 modulus = _mm_mod_ps2(impact, vec4(0.2f));
-			_mm_store_ps(val, modulus);
-			if (val[0] > 0.1f)
-				white = !white;
-			if (val[1] > 0.1f)
-				white = !white;
-
-			// set color
-			if (white)
-				image->data[y * w + x] = vec4(1, 1, 1, 1);
-			else
-				image->data[y * w + x] = vec4(0, 0, 0, 1);*/
-
-
 // threaded data (temporary global)
 mutex m;
 int scanline;
 
 void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 	int line = -1;
+
 	while (1) {
 		// obtain scanline
 		m.lock();
@@ -143,9 +99,6 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 		// quit when done
 		if (line >= image->height) // TODO
 			break;
-
-		// progress
-		printf("%d ", line);
 
 		// calculate indices
 		int start = line * image->width;
@@ -158,14 +111,14 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 			// nearest triangle
 			vec4 mindist = vec4s(1e10f);
 			vec4 color = vec4(0, 0, 0, 0);
-
+			image->data[i] = zero;
 			// loop through al triangles
 			for (int j = 0; j < mesh->numtriangles; j++) {
 				triangle tr = &mesh->triangles[j * 3];
 				vec4 orig = rays[i * 2 + 0];
 				vec4 dir = rays[i * 2 + 1];
 				vec4 dist = intersect(orig, dir, tr);
-				vec4 impact = orig + dist * dir;// -tr[0];
+				vec4 impact = orig + dist * dir;
 				vec4 cmp = dist & (dist < mindist) & (dist > zero);
 
 				vec4 normal = cross(tr[1], tr[2]);
@@ -179,18 +132,13 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 					vec4 a1 = surface(impact, tr[1]) / a;
 					vec4 a2 = surface(impact, tr[2]) / a;
 					vec4 a3 = one - a1 - a2;
-					vec4 r = vec4(1, 0, 0, 0);
-					vec4 g = vec4(0, 1, 0, 0);
-					vec4 b = vec4(0, 0, 1, 0);
 
-					// to light
-					vec4 tolight = light - rays[0];
-					vec4 dist = impact - light;
-					dist = one / sqrt(dot(dist, dist, 0x7F));
-					tolight = tolight / sqrt(dot(tolight, tolight, 0x7F));
-					vec4 factor = dot(normal, tolight, 0x7F);
+					vec4 dist3 = impact - light;
+					dist3 = (dot(dist3, dist3, 0x7F));
+					//tolight = tolight / sqrt(dot(tolight, tolight, 0x7F));
+					//vec4 factor = dot(normal, tolight, 0x7F);
 
-					image->data[i] = impact * vec4s(0.125f);// factor;// a1 * r + a2 * g + a3 * b;
+					image->data[i] = vec4s(0.75f) / dist3;// +normal * vec4s(0.125f);
 					mindist = dist;
 				}
 			}
@@ -231,15 +179,13 @@ const char* bigtime(float time) {
 	return buf2;
 }
 
+extern float random1();
 void raytrace(const Config& conf, const Mesh& mesh, const Octree& octree, Image* image) {
-	Camera cam(vec4(2.0f, 0.1f - 2, 1.0f, 0.0f), 0.0f, 0.5f * 3.1415926f);
+	Camera cam(vec4(2.0f + random1(), 0.1f - 2, 1.0f, 0.0f), 0.0f, 0.5f * 3.1415926f);
 
 	// create rays
 	vec4* rays = (vec4*)ialloc(image->width * image->height * 16 * 2);
-	//raypacket<vec8>* origs = (raypacket<vec8>*)ialloc(640 * 480 * sizeof(raypacket<vec8>));
-	//raypacket<vec8>* dirs = (raypacket<vec8>*)ialloc(640 * 480 * sizeof(raypacket<vec8>));
 	createRays(cam, *image, rays);
-	//createRayPackets<vec8>(rays, origs, dirs, 640 * 480);
 
 	printf("\nPROPERTIES\n");
 	printf("# cores = %d\n", conf.numcores);
@@ -278,4 +224,25 @@ void raytrace(const Config& conf, const Mesh& mesh, const Octree& octree, Image*
 
 	// free data
 	ifree(rays);
+}
+
+__declspec(align(16)) vec4 rays[640 * 480 * 2];
+
+void raytrace2(Camera& cam, const Config& conf, const Mesh& mesh, const Octree& octree, Image* image) {
+
+	// create rays
+	createRays(cam, *image, rays);
+
+	// prepare threaded variables
+	scanline = 0;
+	
+
+	// create threads
+	thread* th = new thread[conf.numcores];
+	for (int i = 0; i < conf.numcores; i++)
+		th[i] = thread(worker, image, rays, &mesh, &octree);
+
+	// wait for threads
+	for (int i = 0; i < conf.numcores; i++)
+		th[i].join();
 }

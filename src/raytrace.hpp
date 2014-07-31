@@ -3,6 +3,7 @@
 #include "mesh.hpp"
 #include "config.hpp"
 #include "octree.hpp"
-#include <xmmintrin.h>
+#include "camera.hpp"
 
-void raytrace(const Config& conf, const Mesh& mesh, const Octree& octree, Image* image);
+void raytrace(Camera& cam, const Config& conf, const Mesh& mesh, const Octree& octree, Image* image);
+void raytrace2(Camera& cam, const Config& conf, const Mesh& mesh, const Octree& octree, Image* image);
