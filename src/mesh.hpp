@@ -1,15 +1,16 @@
 #pragma once
-#include <xmmintrin.h>
+#include "vector.hpp"
+#include "geometry.hpp"
 typedef __m128* triangle;
 
 struct Mesh {
 	// stored in sets of three
 	int numtriangles;
-	__m128* triangles;
+	vec4* triangles;
 	
 	// temporary, for testing
 	int numcolors;
-	__m128* colors;
+	vec4* colors;
 
 	Mesh(const char* path);
 	~Mesh();

@@ -1,36 +1,46 @@
 #pragma once
 #include <vector>
 #include "mesh.hpp"
+using namespace std;
 
 class Octree {
 private:
-	unsigned int max_depth;
-	void calcSize(Mesh& mesh);
-	/*half the size of the AABB - in other words, the size of its potential subtrees.*/
+	int maxdepth;
+	void calcSize(const Mesh& mesh);
+
+	/* half the size of the AABB - in other words, the size of its potential subtrees. */
 	float halfsize;
 
-	/*Top left up corner.*/
-	__m128 position; 
+	/* Top left up corner */
+	vec4 pos;
 
-	/*the subtrees, if any*/
+	/* the subtrees, if any */
 	Octree** sub;
 
-	/*create subtrees.*/
+	/* create subtrees */
 	void split();
-	/*Check which sub-tree contains the given position.*/
-	int follow(const __m128& vertex);
+
+	/* Get the sub-tree index of a point */
+	int follow(const vec4& vertex);
 
 
-	/*does the ray hit the plane defined by the OTHER two axes, INSIDE the box*/
-	bool collidePlane(int axis, const __m128& orig, const __m128& dir);
-	/*will the given ray hit this box*/
-	bool collide(const __m128& orig, const __m128& dir);
-	std::vector<triangle> leaves;
+	/* does the ray hit the plane defined by the OTHER two axes, INSIDE the box */
+	bool collidePlane(int axis, const vec4& orig, const vec4& dir) const;
+
+	/* will the given ray hit this box? */
+	bool collide(const vec4& orig, const vec4& dir) const;
+	vector<triangle> leaves;
+
+	void print(int tabs);
 public:
-	Octree(__m128& position, float halfsize, unsigned int max_depth);
+	Octree(const Mesh& mesh);
+	Octree(vec4& position, float halfsize, int maxdepth);
 	~Octree();
-	void build(Mesh& mesh);
+
 	void add(triangle tr);
-	/*does the given ray hit the triangle. */
-	float hit(const __m128& orig, const __m128& dir, triangle* tri);
+
+	/* Determine which triangle is being hit */
+	vec4 hit(const vec4& orig, const vec4& dir, triangle* tri) const;
+
+	void print();
 };

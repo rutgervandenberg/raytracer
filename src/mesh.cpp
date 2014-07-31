@@ -1,10 +1,11 @@
-#include "mesh.hpp"
-#include "mem.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
 #include <cstring>
 #include <sstream>
+#include "mesh.hpp"
+#include "mem.hpp"
+#include "vector.hpp"
 using namespace std;
 
 float random1() {
@@ -14,12 +15,11 @@ float random1() {
 // 30 kb = 1500 lines
 Mesh::Mesh(const char* path) {
 	// temp data
-	vector<__m128> tempvertices;
-	vector<__m128> temptriangles;
-	vector<__m128> tempcolors;
+	vector<vec4> tempvertices;
+	vector<vec4> temptriangles;
+	vector<TriAccel> tempaccel;
 	tempvertices.reserve(1000000);
 	temptriangles.reserve(1000000);
-	tempcolors.reserve(1000000);
 
 	// reading
 	ifstream in(path);
@@ -65,10 +65,15 @@ Mesh::Mesh(const char* path) {
 				if (res[i][0] < 0 || res[i][0] > tempvertices.size())
 					throw "vertex index out of bounds";
 
-			for (int i = 0; i < 3; i++)
-				temptriangles.push_back(tempvertices[res[i][0]]);
-
-			tempcolors.push_back(_mm_setr_ps(random1(), random1(), random1(), 1.0f));
+			// create triangles
+			temptriangles.push_back(tempvertices[res[0][0]]);
+			temptriangles.push_back(tempvertices[res[1][0]] - tempvertices[res[0][0]]);
+			temptriangles.push_back(tempvertices[res[2][0]] - tempvertices[res[0][0]]);
+			
+			vec4 v0, v1, v2;
+			v0 = tempvertices[res[0][0]];
+			v1 = tempvertices[res[1][0]];
+			v2 = tempvertices[res[2][0]];
 		}
 
 		// skip this line
@@ -79,16 +84,11 @@ Mesh::Mesh(const char* path) {
 
 	// copy to self
 	numtriangles = temptriangles.size() / 3;
-	triangles = (__m128*)ialloc(temptriangles.size() * 16);
-	memcpy(triangles, &temptriangles[0], temptriangles.size() * 16);
+	triangles = (vec4*)ialloc(temptriangles.size() * 16);
 
-	// colors
-	numcolors = tempcolors.size();
-	colors = (__m128*)ialloc(temptriangles.size() * 16);
-	memcpy(colors, &tempcolors[0], tempcolors.size() * 16);
+	memcpy(triangles, &temptriangles[0], temptriangles.size() * 16);
 }
 
 Mesh::~Mesh() {
 	ifree(triangles);
-	ifree(colors);
 }

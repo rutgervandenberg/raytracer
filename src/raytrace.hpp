@@ -1,7 +1,8 @@
 #pragma once
 #include "image.hpp"
 #include "mesh.hpp"
+#include "config.hpp"
+#include "octree.hpp"
 #include <xmmintrin.h>
 
-void raytrace(Mesh& mesh, Image* image);
-__m128 intersect(__m128 vec, __m128* tr);
+void raytrace(const Config& conf, const Mesh& mesh, const Octree& octree, Image* image);
