@@ -17,7 +17,6 @@ Mesh::Mesh(const char* path) {
 	// temp data
 	vector<vec4> tempvertices;
 	vector<vec4> temptriangles;
-	vector<TriAccel> tempaccel;
 	tempvertices.reserve(1000000);
 	temptriangles.reserve(1000000);
 
@@ -31,7 +30,7 @@ Mesh::Mesh(const char* path) {
 		if (token == "v") {
 			float x, y, z;
 			in >> x >> y >> z;
-			tempvertices.push_back(_mm_setr_ps(x, y, z, 1));
+			tempvertices.push_back(vec4(x, y, z, 1));
 		}
 
 		// read a face

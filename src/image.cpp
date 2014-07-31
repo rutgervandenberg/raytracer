@@ -7,13 +7,13 @@ using namespace std;
 Image::Image() {
 	width = 0;
 	height = 0;
-	data = (__m128*)ialloc(16 * 3 * width * height);
+	data = (vec4*)ialloc(16 * 3 * width * height);
 }
 
 Image::Image(int width, int height) {
 	this->width = width;
 	this->height = height;
-	data = (__m128*)ialloc(16 * 3 * width * height);
+	data = (vec4*)ialloc(16 * 3 * width * height);
 }
 
 Image::~Image() {
@@ -72,7 +72,7 @@ void Image::write(const char * filename2) {
 			int i1 = y * width + x;
 			int i2 = (height - 1 - y) * width + x;
 			float* color = (float*)ialloc(4 * 4);
-			_mm_stream_ps(color, data[i1]);
+			_mm_store_ps(color, data[i1]);
 			//color[0] = data[i1].m128_f32[2];
 			//color[1] = data[i1].m128_f32[1];
 			//color[2] = data[i1].m128_f32[0];

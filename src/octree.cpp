@@ -30,7 +30,7 @@ Octree::~Octree() {
 int Octree::follow(const vec4& v) {
 	int index = 0;
 	int val[4];
-	vec4 r1 = pos + VEC4S(halfsize);
+	vec4 r1 = pos + vec4s(halfsize);
 	vec4 r2 = v < r1;
 	_mm_store_ps((float*) val, r2);
 
@@ -52,7 +52,7 @@ void Octree::split() {
 	for (int x = 0; x < 2; x++){
 		for (int y = 0; y < 2; y++){
 			for (int z = 0; z < 2; z++){
-				vec4 subpos = pos + VEC4(x * halfsize, y * halfsize, z * halfsize, 1);
+				vec4 subpos = pos + vec4(x * halfsize, y * halfsize, z * halfsize, 1);
 				float subhalfsize = halfsize * 0.5f;
 				sub[z * 4 + y * 2 + x] = new Octree(subpos, subhalfsize, maxdepth - 1);
 			}
@@ -135,11 +135,11 @@ vec4 Octree::hit(const vec4& orig, const vec4& dir, triangle* out) const {
 	// check hit with this cube
 	if (!collide(orig, dir)) {
 		*out = 0;
-		return VEC4S(1e10f);
+		return vec4s(1e10f);
 	}
 
 	// current closest triangle
-	vec4 shortest = VEC4S(1e10f);
+	vec4 shortest = vec4s(1e10f);
 	triangle res = 0;
 
 	// check with leaves
@@ -174,8 +174,8 @@ vec4 Octree::hit(const vec4& orig, const vec4& dir, triangle* out) const {
 }
 
 void Octree::calcSize(const Mesh& mesh) {
-	vec4 p1 = VEC4S(1e10f); // min
-	vec4 p2 = VEC4S(-1e10f); // max
+	vec4 p1 = vec4s(1e10f); // min
+	vec4 p2 = vec4s(-1e10f); // max
 
 	for (int i = 0; i < mesh.numtriangles; i++) { // triangle
 		vec4 v[3];

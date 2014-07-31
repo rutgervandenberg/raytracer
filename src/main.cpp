@@ -10,14 +10,10 @@
  *	Load the mesh and configuration
  *	then raytrace the image
  *	then save it to a file.
- *	
- *	Bugs:
- *	- x and y are inverted
- *	- it isn't realtime
  */
 int main(int argv, char** argc) {
 	// load meshname from commandline
-	const char* meshname = "mesh/simple-monkey.obj";
+	const char* meshname = "mesh/scene.obj";
 	if (argv == 2)
 		meshname = argc[2];
 

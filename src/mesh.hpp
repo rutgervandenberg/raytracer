@@ -1,7 +1,7 @@
 #pragma once
 #include "vector.hpp"
 #include "geometry.hpp"
-typedef __m128* triangle;
+typedef vec4* triangle;
 
 struct Mesh {
 	// stored in sets of three

@@ -127,7 +127,7 @@ inline vec4 surface(vec4* tr) {
 	vec4 c = sqrt(dot(tr[2] - tr[1], tr[2] - tr[1], 0x7F));
 
 	// om
-	vec4 s = VEC4S(0.5f) * (a + b + c);
+	vec4 s = vec4s(0.5f) * (a + b + c);
 
 	// area
 	vec4 area = sqrt(s * (s - a) * (s - b) * (s - c));
@@ -144,7 +144,7 @@ inline vec4 surface(vec4 e1, vec4 e2) {
 	vec4 c = sqrt(dot(e2 - e1, e2 - e1, 0x7F));
 
 	// om
-	vec4 s = VEC4S(0.5f) * (a + b + c);
+	vec4 s = vec4s(0.5f) * (a + b + c);
 
 	// area
 	vec4 area = sqrt(s * (s - a) * (s - b) * (s - c));
@@ -168,5 +168,5 @@ T intersectPacket(const TriAccelArray<T, I>& a, int i,
  *	tr = triangle / array of three vertices
  */
 vec4 intersect(vec4 p, vec4 d, vec4* tr);
-const static vec4 one = VEC4S(1.0f);
-const static vec4 zero = VEC4S(0.0f);
+const static vec4 one = vec4s(1.0f);
+const static vec4 zero = vec4s(0.0f);

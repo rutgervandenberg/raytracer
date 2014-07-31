@@ -32,20 +32,21 @@ struct Camera {
 	}
 
 	Camera(vec4 pos, float xdir, float ydir) : pos(pos), dir(dir), xdir(xdir), ydir(ydir) {
-		rotation[0] = VEC4(1, 0, 0, 0);
-		rotation[1] = VEC4(0, cos(ydir), -sin(ydir), 0);
-		rotation[2] = VEC4(0, sin(ydir), cos(ydir), 0);
-		rotation[3] = VEC4(0, 0, 0, 1);
+		rotation[0] = vec4(1, 0, 0, 0);
+		rotation[1] = vec4(0, cos(ydir), -sin(ydir), 0);
+		rotation[2] = vec4(0, sin(ydir), cos(ydir), 0);
+		rotation[3] = vec4(0, 0, 0, 1);
 	}
 };
 
 void createRays(Camera& cam, Image& image, vec4* rays) {
 	// corner rays (LEFTUP, RIGHTUP, LEFTDOWN, RIGHTDOWN)
 	vec4 corners[4];
-	corners[0] = VEC4(0.5f, 0.5f, -1, 1);
-	corners[1] = VEC4(-0.5f, 0.5f, -1, 1);
-	corners[2] = VEC4(0.5f, -0.5f, -1, 1);
-	corners[3] = VEC4(-0.5f, -0.5f, -1, 1);
+	float ratio = (float)image.width / (float)image.height;
+	corners[0] = vec4(0.5f * ratio, 0.5f, -1, 1);
+	corners[1] = vec4(-0.5f * ratio, 0.5f, -1, 1);
+	corners[2] = vec4(0.5f * ratio, -0.5f, -1, 1);
+	corners[3] = vec4(-0.5f * ratio, -0.5f, -1, 1);
 
 	for (int i = 0; i < 4; i++)
 		corners[i] = mmultSSE2(cam.rotation, corners[i]);
@@ -60,10 +61,10 @@ void createRays(Camera& cam, Image& image, vec4* rays) {
 			float yf1 = 1.0f - yf2;
 
 			// per corner
-			vec4 val1 = VEC4S(xf1 * yf1);
-			vec4 val2 = VEC4S(xf2 * yf1);
-			vec4 val3 = VEC4S(xf1 * yf2);
-			vec4 val4 = VEC4S(xf2 * yf2);
+			vec4 val1 = vec4s(xf1 * yf1);
+			vec4 val2 = vec4s(xf2 * yf1);
+			vec4 val3 = vec4s(xf1 * yf2);
+			vec4 val4 = vec4s(xf2 * yf2);
 
 			// calculate ray
 			vec4 ray1 = cam.pos;
@@ -108,11 +109,11 @@ void createRayPackets(vec4* rays, raypacket<T>* origs, raypacket<T>* dirs, int n
 			_mm_store_ps(val, fac);
 			float a = val[2];
 
-			__m128 f = VEC4S(a);
+			__m128 f = vec4(a);
 			__m128 impact = orig + f * dir;
 
 			bool white = true;
-			__m128 modulus = _mm_mod_ps2(impact, VEC4S(0.2f));
+			__m128 modulus = _mm_mod_ps2(impact, vec4(0.2f));
 			_mm_store_ps(val, modulus);
 			if (val[0] > 0.1f)
 				white = !white;
@@ -121,9 +122,9 @@ void createRayPackets(vec4* rays, raypacket<T>* origs, raypacket<T>* dirs, int n
 
 			// set color
 			if (white)
-				image->data[y * w + x] = VEC4(1, 1, 1, 1);
+				image->data[y * w + x] = vec4(1, 1, 1, 1);
 			else
-				image->data[y * w + x] = VEC4(0, 0, 0, 1);*/
+				image->data[y * w + x] = vec4(0, 0, 0, 1);*/
 
 
 // threaded data (temporary global)
@@ -136,23 +137,27 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 		// obtain scanline
 		m.lock();
 		line = scanline;
-		scanline++;
+		scanline += 4;
 		m.unlock();
 
 		// quit when done
-		if (line >= 480-1) // TODO
+		if (line >= image->height) // TODO
 			break;
 
-		// calculate indices
-		int start = scanline * image->width;
-		int end = start + image->width;
+		// progress
+		printf("%d ", line);
 
+		// calculate indices
+		int start = line * image->width;
+		int end = start + image->width * 4;
+
+		vec4 light = vec4(1, 1, 1.9, 0);
 		int temp;
 		for (int i = start; i < end; i++) {
 
 			// nearest triangle
-			vec4 mindist = VEC4S(1e10f);
-			vec4 color = VEC4(0, 0, 0, 0);
+			vec4 mindist = vec4s(1e10f);
+			vec4 color = vec4(0, 0, 0, 0);
 
 			// loop through al triangles
 			for (int j = 0; j < mesh->numtriangles; j++) {
@@ -160,8 +165,8 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 				vec4 orig = rays[i * 2 + 0];
 				vec4 dir = rays[i * 2 + 1];
 				vec4 dist = intersect(orig, dir, tr);
-				vec4 impact = orig + dist * dir - tr[0];
-				vec4 cmp = dist & (dist < mindist);
+				vec4 impact = orig + dist * dir;// -tr[0];
+				vec4 cmp = dist & (dist < mindist) & (dist > zero);
 
 				vec4 normal = cross(tr[1], tr[2]);
 				vec4 len = sqrt(dot(normal, normal, 0x7F));
@@ -173,12 +178,19 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 					vec4 a = surface(tr[1], tr[2]);
 					vec4 a1 = surface(impact, tr[1]) / a;
 					vec4 a2 = surface(impact, tr[2]) / a;
-					vec4 a3 = a - a1 - a2;
-					vec4 r = VEC4(1, 0, 0, 0);
-					vec4 g = VEC4(0, 1, 0, 0);
-					vec4 b = VEC4(0, 0, 1, 0);
+					vec4 a3 = one - a1 - a2;
+					vec4 r = vec4(1, 0, 0, 0);
+					vec4 g = vec4(0, 1, 0, 0);
+					vec4 b = vec4(0, 0, 1, 0);
 
-					image->data[i] = r * a1 + g * a2 + b * a3;
+					// to light
+					vec4 tolight = light - rays[0];
+					vec4 dist = impact - light;
+					dist = one / sqrt(dot(dist, dist, 0x7F));
+					tolight = tolight / sqrt(dot(tolight, tolight, 0x7F));
+					vec4 factor = dot(normal, tolight, 0x7F);
+
+					image->data[i] = impact * vec4s(0.125f);// factor;// a1 * r + a2 * g + a3 * b;
 					mindist = dist;
 				}
 			}
@@ -191,13 +203,13 @@ void worker(Image* image, vec4* rays, const Mesh* mesh, const Octree* octree) {
 
 char buf1[1024];
 const char* bignum(long long num) {
-	const static char* strs[] = { "a", "thousand", "million", "billion", "trillion", "gazillion", "vermicellion" };
+	const char* strs[] = { "", "thousand", "million", "billion", "trillion", "gazillion", "vermicellion" };
 	int idx = 0;
 	while (num >= 1000) {
 		idx++;
 		num /= 1000;
 	}
-	sprintf(buf1, "%d %s", num, &strs[idx]);
+	sprintf(buf1, "%d %s", (int) num, strs[idx]);
 	return buf1;
 }
 
@@ -207,7 +219,7 @@ const char* bigtime(float time) {
 	const char* strs[] = { "y", "z", "a", "f", "p", "n", "u", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y" };
 
 	if (time < 1.0f) {
-		while (time < 1.0f) {
+		while (time < 1.0f && idx > 0) {
 			time *= 1000.0f;
 			idx--;
 		}
@@ -220,7 +232,7 @@ const char* bigtime(float time) {
 }
 
 void raytrace(const Config& conf, const Mesh& mesh, const Octree& octree, Image* image) {
-	Camera cam(VEC4(0, 0, 4, 1), 0, 0);
+	Camera cam(vec4(2.0f, 0.1f - 2, 1.0f, 0.0f), 0.0f, 0.5f * 3.1415926f);
 
 	// create rays
 	vec4* rays = (vec4*)ialloc(image->width * image->height * 16 * 2);

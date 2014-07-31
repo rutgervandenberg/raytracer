@@ -1,13 +1,13 @@
 #pragma once
 #include <vector>
-#include <xmmintrin.h>
+#include "vector.hpp"
 using namespace std;
 
 class Image {
 public:
 	int width;
 	int height;
-	__m128* data;
+	vec4* data;
 
 	Image();
 	Image(int width, int height);
